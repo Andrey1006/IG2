@@ -113,7 +113,7 @@ struct DrawStep: View {
     private func slotLine(_ team: Team?) -> some View {
         HStack(spacing: 6) {
             if let team {
-                Kit(index: team.kit, size: 12)
+                Kit(index: team.kit, size: 12, crest: team.crest)
                 Text(team.name)
                     .font(.copy(13, .bold))
                     .foregroundColor(Turf.chalk)
@@ -135,7 +135,7 @@ struct DrawStep: View {
     private var revealCard: some View {
         if let reveal {
             HStack(spacing: 14) {
-                Kit(index: reveal.kit, size: 40)
+                Kit(index: reveal.kit, size: 40, crest: reveal.crest)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(placement(of: reveal))
                         .font(.copy(12, .heavy))

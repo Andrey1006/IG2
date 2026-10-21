@@ -120,6 +120,17 @@ final class Clubhouse: ObservableObject {
         return p
     }
 
+    func crown(_ player: UUID?, in id: UUID) {
+        editFixture(id) { $0.star = player }
+    }
+
+    func setCrest(_ crest: Data?, for team: UUID) {
+        edit { t in
+            guard let i = t.teams.firstIndex(where: { $0.id == team }) else { return }
+            t.teams[i].crest = crest
+        }
+    }
+
     func setHaptics(_ on: Bool) {
         book.haptics = on
         Buzz.enabled = on
@@ -161,6 +172,7 @@ final class Clubhouse: ObservableObject {
                 f.clock = Stopwatch()
                 f.shootout = nil
                 f.goldenGoal = false
+                f.star = nil
                 t.fixtures[i] = f
             }
         }

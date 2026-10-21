@@ -87,7 +87,7 @@ private struct TeamLine: View {
                 team.kit += 1
                 Buzz.tick()
             } label: {
-                Kit(index: team.kit, size: 30)
+                Kit(index: team.kit, size: 30, crest: team.crest)
             }
             .buttonStyle(Squash())
 
@@ -139,11 +139,16 @@ struct RosterSheet: View {
         ZStack {
             Turf.night.ignoresSafeArea()
             VStack(alignment: .leading, spacing: 16) {
-                HStack {
-                    Kit(index: team.kit, size: 26)
-                    Text(team.name.isEmpty ? "New team" : team.name)
-                        .font(.banner(24))
-                        .foregroundColor(Turf.chalk)
+                HStack(spacing: 14) {
+                    CrestPicker(crest: $team.crest, kit: team.kit, size: 52)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(team.name.isEmpty ? "New team" : team.name)
+                            .font(.banner(24))
+                            .foregroundColor(Turf.chalk)
+                        Text(team.crest == nil ? "Tap the badge to add a crest" : "Tap the badge to change the crest")
+                            .font(.copy(12))
+                            .foregroundColor(Turf.haze)
+                    }
                     Spacer()
                     Button("Done") { dismiss() }
                         .buttonStyle(ChalkLineButton(compact: true))

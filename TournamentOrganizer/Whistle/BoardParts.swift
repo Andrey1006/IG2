@@ -16,7 +16,7 @@ struct GoalColumn: View {
 
         VStack(spacing: 4) {
             HStack(spacing: 6) {
-                Kit(index: team?.kit ?? 10, size: 14)
+                Kit(index: team?.kit ?? 10, size: 14, crest: team?.crest)
                 Text(team?.name ?? "?")
                     .font(.copy(14, .heavy))
                     .foregroundColor(Turf.chalk)
@@ -279,6 +279,7 @@ struct ScorerPanel: View {
 
     @EnvironmentObject private var club: Clubhouse
     @State private var ownGoal = false
+    @State private var scorer: UUID?
     @State private var newName = ""
     @State private var number = ""
 
@@ -302,10 +303,21 @@ struct ScorerPanel: View {
                         .font(.banner(20))
                         .foregroundColor(Turf.chalk)
                     Spacer()
-                    Button(scoring ? "Skip" : "Close", action: onClose)
-                        .buttonStyle(ChalkLineButton(compact: true))
+                    Button(scoring ? "Skip" : "Close") {
+                        if scorer != nil { finish(nil) } else { onClose() }
+                    }
+                    .buttonStyle(ChalkLineButton(compact: true))
                 }
-                if scoring {
+                if let scorer {
+                    ScrollView(showsIndicators: false) {
+                        PlayerChips(
+                            players: (t.team(at: f.seat(side))?.players ?? []).filter { $0.id != scorer },
+                            selected: Binding(get: { nil }, set: { finish($0) }),
+                            barred: barred(side)
+                        )
+                    }
+                    .frame(maxHeight: 190)
+                } else if scoring {
                     HStack(spacing: 8) {
                         Button {
                             ownGoal = false
@@ -330,7 +342,7 @@ struct ScorerPanel: View {
                 HStack(spacing: 8) {
                     ChalkField(placeholder: "#", text: $number, size: 15, keyboard: .numberPad)
                         .frame(width: 58)
-                    ChalkField(placeholder: "New player for \(t.team(at: f.seat(roster))?.code ?? "")", text: $newName, size: 15)
+                    ChalkField(placeholder: "\(scorer == nil ? "New player" : "New assist") for \(t.team(at: f.seat(roster))?.code ?? "")", text: $newName, size: 15)
                     Button("Add") { add() }
                         .buttonStyle(ChalkLineButton(tint: Turf.floodlight, compact: true))
                 }
@@ -352,6 +364,7 @@ struct ScorerPanel: View {
     }
 
     private var title: String {
+        if scorer != nil { return "Who set it up?" }
         if scoring { return ownGoal ? "Who put it in their own net?" : "Who scored?" }
         return "Add to \(t.team(at: f.seat(side))?.name ?? "team")"
     }
@@ -366,6 +379,23 @@ struct ScorerPanel: View {
         incident.kind = ownGoal ? .ownGoal : .goal
         incident.side = ownGoal ? s.other : s
         club.amend(incident, in: f.id)
+        if let player, !ownGoal {
+            Buzz.tick()
+            withAnimation(.spring(response: 0.3)) { scorer = player }
+            return
+        }
+        Buzz.success()
+        onClose()
+    }
+
+    private func finish(_ assist: UUID?) {
+        guard case .scorer(_, let incidentID) = panel,
+              var incident = club.tournament?.fixture(f.id)?.incidents.first(where: { $0.id == incidentID }) else {
+            onClose()
+            return
+        }
+        incident.assist = assist
+        club.amend(incident, in: f.id)
         Buzz.success()
         onClose()
     }
@@ -378,7 +408,9 @@ struct ScorerPanel: View {
         }
         newName = ""
         number = ""
-        if scoring {
+        if scorer != nil {
+            finish(p.id)
+        } else if scoring {
             pick(p.id)
         } else {
             Buzz.tick()

@@ -5,6 +5,7 @@ struct WhistleScreen: View {
     @EnvironmentObject private var dugout: Dugout
     @State private var callingUp = false
     @State private var lifted: Team?
+    @State private var starFor: UUID?
 
     var body: some View {
         ZStack {
@@ -15,6 +16,7 @@ struct WhistleScreen: View {
                     VStack(spacing: 10) {
                         switcher(t, live, focus: f.id)
                         RefereeBoard(t: t, f: f) { done in
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { starFor = done.id }
                             guard let now = club.tournament else { return }
                             let decided = (done.stage.kind == .knockout && done.stage.round == 1) || (now.format == .league && now.isOver)
                             guard decided, let champ = now.podium.champion else { return }
@@ -40,6 +42,11 @@ struct WhistleScreen: View {
                 }
                 .transition(.scale(scale: 0.8).combined(with: .opacity))
                 .zIndex(3)
+            }
+        }
+        .sheet(item: Binding(get: { starFor.map(SheetID.init) }, set: { starFor = $0?.id })) { sheet in
+            if let t = club.tournament, let f = t.fixture(sheet.id) {
+                StarSheet(t: t, f: f) { club.crown($0, in: f.id) }
             }
         }
         .sheet(isPresented: $callingUp) {

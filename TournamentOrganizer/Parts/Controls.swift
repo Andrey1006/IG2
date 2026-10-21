@@ -174,13 +174,21 @@ struct Chip: View {
 struct Kit: View {
     let index: Int
     var size: CGFloat = 14
+    var crest: Data?
 
     var body: some View {
         ZStack {
-            Circle().fill(Turf.kit(index))
-            Rectangle()
-                .fill(.black.opacity(0.18))
-                .frame(width: size * 0.22)
+            if let crest, let image = Crest.image(crest) {
+                Turf.chalk
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                Circle().fill(Turf.kit(index))
+                Rectangle()
+                    .fill(.black.opacity(0.18))
+                    .frame(width: size * 0.22)
+            }
         }
         .frame(width: size, height: size)
         .clipShape(Circle())

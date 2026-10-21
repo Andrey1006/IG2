@@ -14,6 +14,7 @@ struct Scorer: Identifiable {
     let team: Team
     var goals: Int
     var matches: Int
+    var assists = 0
 
     var id: UUID { player.id }
 }
@@ -115,12 +116,28 @@ extension Tournament {
                 table[pid, default: Scorer(player: p, team: t, goals: 0, matches: 0)].goals += 1
             }
         }
+        return ranked(table) { $0.goals }
+    }
+
+    var playmakers: [Scorer] {
+        var table: [UUID: Scorer] = [:]
+        for f in fixtures where f.status != .scheduled {
+            for i in f.incidents where i.kind == .goal {
+                guard let pid = i.assist, let (p, t) = roster(of: pid) else { continue }
+                table[pid, default: Scorer(player: p, team: t, goals: 0, matches: 0)].assists += 1
+            }
+        }
+        return ranked(table) { $0.assists }
+    }
+
+    private func ranked(_ source: [UUID: Scorer], by value: (Scorer) -> Int) -> [Scorer] {
+        var table = source
         for id in table.keys {
             guard let t = table[id]?.team else { continue }
             table[id]?.matches = fixtures(of: t.id).filter { $0.status != .scheduled }.count
         }
         return table.values.sorted {
-            if $0.goals != $1.goals { return $0.goals > $1.goals }
+            if value($0) != value($1) { return value($0) > value($1) }
             if $0.matches != $1.matches { return $0.matches < $1.matches }
             return $0.player.name < $1.player.name
         }
@@ -148,8 +165,8 @@ extension Tournament {
             .filter { $0.status != .scheduled }
             .sorted { $0.kickoff < $1.kickoff }
             .compactMap { f in
-                let mine = f.incidents.filter { $0.player == player }
-                return mine.isEmpty ? nil : (f, mine)
+                let mine = f.incidents.filter { $0.player == player || $0.assist == player }
+                return mine.isEmpty && f.star != player ? nil : (f, mine)
             }
     }
 }

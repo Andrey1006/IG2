@@ -51,7 +51,7 @@ struct FixtureTicket: View {
         let won = f.winningSide == side
         return HStack(spacing: 8) {
             if let team {
-                Kit(index: team.kit, size: 13)
+                Kit(index: team.kit, size: 13, crest: team.crest)
             } else {
                 Circle().stroke(Turf.haze.opacity(0.5), style: StrokeStyle(lineWidth: 1, dash: [2, 2])).frame(width: 13, height: 13)
             }

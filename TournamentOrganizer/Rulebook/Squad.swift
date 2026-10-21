@@ -24,13 +24,15 @@ struct Team: Codable, Identifiable, Hashable {
     var kit: Int
     var seeded: Bool
     var players: [Player]
+    var crest: Data?
 
-    init(id: UUID = UUID(), name: String, kit: Int, seeded: Bool = false, players: [Player] = []) {
+    init(id: UUID = UUID(), name: String, kit: Int, seeded: Bool = false, players: [Player] = [], crest: Data? = nil) {
         self.id = id
         self.name = name
         self.kit = kit
         self.seeded = seeded
         self.players = players
+        self.crest = crest
     }
 
     var code: String {

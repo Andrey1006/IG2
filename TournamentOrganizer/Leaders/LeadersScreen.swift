@@ -3,18 +3,18 @@ import SwiftUI
 struct LeadersScreen: View {
     @EnvironmentObject private var club: Clubhouse
     @EnvironmentObject private var dugout: Dugout
-    @State private var board = 0
+    @State private var tab = 0
 
     var body: some View {
         if let t = club.tournament {
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 18) {
                     Masthead(kicker: "\(t.totalGoals) goals · \(t.played) matches", title: "Leaders")
-                    ChalkTabs(options: [(0, "⚽️ Scorers"), (1, "🟨 Discipline")], selection: $board)
-                    if board == 0 {
-                        scorers(t)
-                    } else {
-                        discipline(t)
+                    ChalkTabs(options: [(0, "⚽️ Scorers"), (1, "🅰️ Assists"), (2, "🟨 Cards")], selection: $tab)
+                    switch tab {
+                    case 0: scorers(t)
+                    case 1: assists(t)
+                    default: discipline(t)
                     }
                 }
                 .padding(.horizontal, 18)
@@ -36,51 +36,69 @@ struct LeadersScreen: View {
             )
         } else {
             Podium(t: t, top: Array(list.prefix(3)))
-            let best = list.first?.goals ?? 1
-            VStack(spacing: 6) {
-                ForEach(Array(list.enumerated()), id: \.element.id) { i, s in
-                    Button {
-                        dugout.path(.leaders).wrappedValue.append(.player(s.player.id))
-                    } label: {
-                        HStack(spacing: 10) {
-                            Text("\(rank(list, i))")
-                                .font(.tally(13, .bold))
-                                .foregroundColor(Turf.haze)
-                                .frame(width: 24, alignment: .leading)
-                            Kit(index: s.team.kit, size: 12)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(s.player.name)
-                                    .font(.copy(15, .bold))
-                                    .foregroundColor(Turf.chalk)
-                                Text("\(s.team.name) · \(s.matches) played").lineLimit(1)
-                                    .font(.copy(11))
-                                    .foregroundColor(Turf.haze)
-                            }
-                            Spacer(minLength: 8)
-                            GeometryReader { geo in
-                                Capsule()
-                                    .fill(Turf.floodlight.opacity(0.85))
-                                    .frame(width: max(6, geo.size.width * CGFloat(s.goals) / CGFloat(best)), height: 6)
-                                    .frame(maxHeight: .infinity)
-                            }
-                            .frame(width: 70)
-                            Text("\(s.goals)")
-                                .font(.scoreboard(22))
+            board(list) { $0.goals }
+        }
+    }
+
+    @ViewBuilder
+    private func assists(_ t: Tournament) -> some View {
+        let list = t.playmakers
+        if list.isEmpty {
+            EmptyPitch(
+                art: .goldenBoot,
+                title: "No assists yet",
+                message: "After picking a scorer in the Whistle, tap who set it up."
+            )
+        } else {
+            board(list) { $0.assists }
+        }
+    }
+
+    private func board(_ list: [Scorer], value: @escaping (Scorer) -> Int) -> some View {
+        let best = list.first.map(value) ?? 1
+        return VStack(spacing: 6) {
+            ForEach(Array(list.enumerated()), id: \.element.id) { i, s in
+                Button {
+                    dugout.path(.leaders).wrappedValue.append(.player(s.player.id))
+                } label: {
+                    HStack(spacing: 10) {
+                        Text("\(rank(list, i, value))")
+                            .font(.tally(13, .bold))
+                            .foregroundColor(Turf.haze)
+                            .frame(width: 24, alignment: .leading)
+                        Kit(index: s.team.kit, size: 12, crest: s.team.crest)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(s.player.name)
+                                .font(.copy(15, .bold))
                                 .foregroundColor(Turf.chalk)
-                                .frame(width: 30, alignment: .trailing)
+                            Text("\(s.team.name) · \(s.matches) played").lineLimit(1)
+                                .font(.copy(11))
+                                .foregroundColor(Turf.haze)
                         }
-                        .padding(.horizontal, 14)
-                        .frame(height: 56)
-                        .background(RoundedRectangle(cornerRadius: 14).fill(Turf.pitch))
+                        Spacer(minLength: 8)
+                        GeometryReader { geo in
+                            Capsule()
+                                .fill(Turf.floodlight.opacity(0.85))
+                                .frame(width: max(6, geo.size.width * CGFloat(value(s)) / CGFloat(max(best, 1))), height: 6)
+                                .frame(maxHeight: .infinity)
+                        }
+                        .frame(width: 70)
+                        Text("\(value(s))")
+                            .font(.scoreboard(22))
+                            .foregroundColor(Turf.chalk)
+                            .frame(width: 30, alignment: .trailing)
                     }
-                    .buttonStyle(Squash())
+                    .padding(.horizontal, 14)
+                    .frame(height: 56)
+                    .background(RoundedRectangle(cornerRadius: 14).fill(Turf.pitch))
                 }
+                .buttonStyle(Squash())
             }
         }
     }
 
-    private func rank(_ list: [Scorer], _ i: Int) -> Int {
-        (list.firstIndex { $0.goals == list[i].goals } ?? i) + 1
+    private func rank(_ list: [Scorer], _ i: Int, _ value: (Scorer) -> Int) -> Int {
+        (list.firstIndex { value($0) == value(list[i]) } ?? i) + 1
     }
 
     @ViewBuilder
@@ -160,7 +178,7 @@ struct LeadersScreen: View {
                 VStack(spacing: 6) {
                     ForEach(cards) { line in
                         HStack(spacing: 10) {
-                            Kit(index: line.team.kit, size: 12)
+                            Kit(index: line.team.kit, size: 12, crest: line.team.crest)
                             Text(line.team.name)
                                 .font(.copy(14, .bold))
                                 .foregroundColor(Turf.chalk)

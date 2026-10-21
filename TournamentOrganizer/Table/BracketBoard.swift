@@ -98,7 +98,7 @@ struct BracketBoard: View {
                 let team = t.team(at: f.seat(s))
                 let won = f.winningSide == s
                 HStack(spacing: 6) {
-                    Kit(index: team?.kit ?? 10, size: 10)
+                    Kit(index: team?.kit ?? 10, size: 10, crest: team?.crest)
                         .opacity(team == nil ? 0.3 : 1)
                     Text(team?.name ?? t.label(f.seat(s)))
                         .font(.copy(12, won ? .heavy : .semibold))

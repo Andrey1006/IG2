@@ -1,15 +1,12 @@
 import SwiftUI
 
-@main
-struct MatchBracketApp: App {
+struct MatchBracketApp: View {
     @StateObject private var club = Clubhouse()
 
-    var body: some Scene {
-        WindowGroup {
-            Root()
-                .environmentObject(club)
-                .preferredColorScheme(.dark)
-        }
+    var body: some View {
+        Root()
+            .environmentObject(club)
+            .preferredColorScheme(.dark)
     }
 }
 

@@ -28,10 +28,15 @@ struct TeamScreen: View {
                         Pennant()
                             .fill(Turf.kit(team.kit))
                             .frame(width: 64, height: 80)
-                        Text(team.code)
-                            .font(.banner(18))
-                            .foregroundColor(team.kit == 3 || team.kit == 2 ? Turf.ink : Turf.chalk)
-                            .offset(y: -6)
+                        if team.crest != nil {
+                            Kit(index: team.kit, size: 46, crest: team.crest)
+                                .offset(y: -6)
+                        } else {
+                            Text(team.code)
+                                .font(.banner(18))
+                                .foregroundColor(team.kit == 3 || team.kit == 2 ? Turf.ink : Turf.chalk)
+                                .offset(y: -6)
+                        }
                     }
                     VStack(alignment: .leading, spacing: 4) {
                         Text(team.name)
@@ -105,6 +110,7 @@ struct TeamScreen: View {
                     club.edit { t in
                         guard let i = t.teams.firstIndex(where: { $0.id == teamID }) else { return }
                         t.teams[i].players = updated.players
+                        t.teams[i].crest = updated.crest
                     }
                 }
             ))

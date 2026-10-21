@@ -7,6 +7,7 @@ struct MatchSheetScreen: View {
     @State private var adding = false
     @State private var moving = false
     @State private var shootout = false
+    @State private var starring = false
     @State private var held: Tournament?
     @State private var heldNotes: [String] = []
 
@@ -32,6 +33,10 @@ struct MatchSheetScreen: View {
                 Scoreline(t: t, f: f)
 
                 actions(t, f)
+
+                if f.status == .finished {
+                    starCard(t, f)
+                }
 
                 let out = Side.allCases.flatMap { side in
                     t.unavailable(in: f, side: side).compactMap { t.roster(of: $0)?.0.name }
@@ -90,6 +95,9 @@ struct MatchSheetScreen: View {
             }
         }
         .sheet(isPresented: $moving) { MoveSheet(t: t, f: f) }
+        .sheet(isPresented: $starring) {
+            StarSheet(t: t, f: f) { club.crown($0, in: f.id) }
+        }
         .sheet(isPresented: $shootout) {
             ShootoutSheet(t: t, f: f) { s in
                 commit { $0.fixtures[index(t)].shootout = s }
@@ -104,6 +112,37 @@ struct MatchSheetScreen: View {
         } message: {
             Text("Played matches keep their line-ups:\n" + heldNotes.joined(separator: "\n"))
         }
+    }
+
+    private func starCard(_ t: Tournament, _ f: Fixture) -> some View {
+        let star = f.star.flatMap { t.roster(of: $0) }
+        return Button {
+            starring = true
+        } label: {
+            HStack(spacing: 14) {
+                Text("⭐️")
+                    .font(.system(size: 26))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("PLAYER OF THE MATCH")
+                        .font(.copy(11, .heavy))
+                        .tracking(1.4)
+                        .foregroundColor(Turf.floodlight)
+                    Text(star?.0.name ?? "Tap to pick")
+                        .font(.copy(17, .bold))
+                        .foregroundColor(star == nil ? Turf.haze : Turf.chalk)
+                }
+                Spacer()
+                if let team = star?.1 {
+                    Kit(index: team.kit, size: 24, crest: team.crest)
+                }
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundColor(Turf.haze)
+            }
+            .padding(16)
+            .flagCard(radius: 18, notch: 18)
+        }
+        .buttonStyle(Squash())
     }
 
     private func index(_ t: Tournament) -> Int {
@@ -208,7 +247,7 @@ struct Scoreline: View {
     private func club(_ side: Side) -> some View {
         let team = t.team(at: f.seat(side))
         return VStack(spacing: 8) {
-            Kit(index: team?.kit ?? 10, size: 38)
+            Kit(index: team?.kit ?? 10, size: 38, crest: team?.crest)
             Text(t.label(f.seat(side)))
                 .font(.banner(16))
                 .foregroundColor(team == nil ? Turf.haze : Turf.chalk)
@@ -229,6 +268,7 @@ struct IncidentLine: View {
     var body: some View {
         let name = incident.player.flatMap { t.roster(of: $0)?.0.name } ?? "Unknown player"
         let team = t.team(at: f.seat(incident.side))
+        let helper = incident.assist.flatMap { t.roster(of: $0)?.0.shortName }
         HStack(spacing: 10) {
             Text("\(incident.minute)′")
                 .font(.tally(13, .bold))
@@ -239,8 +279,9 @@ struct IncidentLine: View {
                 Text(name)
                     .font(.copy(15, .bold))
                     .foregroundColor(Turf.chalk)
-                Text("\(incident.kind.label) · \(team?.name ?? "")")
+                Text([incident.kind.label, helper.map { "assist \($0)" }, team?.name].compactMap { $0 }.joined(separator: " · "))
                     .font(.copy(12))
+                    .lineLimit(1)
                     .foregroundColor(Turf.haze)
             }
             Spacer()

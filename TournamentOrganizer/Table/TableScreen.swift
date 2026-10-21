@@ -86,7 +86,7 @@ struct StandingsCard: View {
                             .foregroundColor(i < zone ? Turf.floodlight : Turf.haze)
                             .frame(width: 22, alignment: .leading)
                         HStack(spacing: 7) {
-                            Kit(index: row.team.kit, size: 12)
+                            Kit(index: row.team.kit, size: 12, crest: row.team.crest)
                             Text(row.team.name)
                                 .font(.copy(14, .bold))
                                 .foregroundColor(Turf.chalk)

@@ -28,13 +28,20 @@ struct PlayerScreen: View {
                                 .foregroundColor(Turf.chalk)
                         }
                         Spacer()
-                        Kit(index: team.kit, size: 36)
+                        Kit(index: team.kit, size: 36, crest: team.crest)
                     }
 
-                    HStack(spacing: 10) {
-                        tile("⚽️", all.filter { $0.kind == .goal }.count, "goals")
-                        tile("🟨", all.filter { $0.kind == .yellow }.count, "yellows")
-                        tile("🟥", all.filter { $0.kind == .red }.count, "reds")
+                    let own = all.filter { $0.player == p.id }
+                    VStack(spacing: 10) {
+                        HStack(spacing: 10) {
+                            tile("⚽️", own.filter { $0.kind == .goal }.count, "goals")
+                            tile("🅰️", all.filter { $0.assist == p.id }.count, "assists")
+                            tile("⭐️", t.fixtures.filter { $0.star == p.id }.count, "MOTM")
+                        }
+                        HStack(spacing: 10) {
+                            tile("🟨", own.filter { $0.kind == .yellow }.count, "yellows")
+                            tile("🟥", own.filter { $0.kind == .red }.count, "reds")
+                        }
                     }
 
                     if let ban {
@@ -66,7 +73,7 @@ struct PlayerScreen: View {
                                         .foregroundColor(Turf.chalk)
                                 }
                                 Spacer()
-                                Text(incidents.map { "\($0.kind.emoji)\($0.minute)′" }.joined(separator: " "))
+                                Text(((f.star == p.id ? ["⭐️"] : []) + incidents.map { "\($0.player == p.id ? $0.kind.emoji : "🅰️")\($0.minute)′" }).joined(separator: " "))
                                     .font(.tally(12))
                                     .foregroundColor(Turf.chalk)
                             }

@@ -9,6 +9,7 @@ struct IncidentSheet: View {
     @State private var kind = Incident.Kind.goal
     @State private var side = Side.home
     @State private var player: UUID?
+    @State private var assist: UUID?
     @State private var minute = 1
     @State private var newName = ""
 
@@ -53,10 +54,11 @@ struct IncidentSheet: View {
                             Button {
                                 side = s
                                 player = nil
+                                assist = nil
                                 Buzz.tick()
                             } label: {
                                 HStack {
-                                    Kit(index: t.team(at: f.seat(s))?.kit ?? 0)
+                                    Kit(index: t.team(at: f.seat(s))?.kit ?? 0, crest: t.team(at: f.seat(s))?.crest)
                                     Text(t.label(f.seat(s)))
                                         .lineLimit(1)
                                 }
@@ -72,6 +74,9 @@ struct IncidentSheet: View {
 
                     SectionLabel(text: "Player")
                     PlayerChips(players: roster, selected: $player)
+                        .onChange(of: player) { picked in
+                            if picked == assist { assist = nil }
+                        }
                     HStack(spacing: 8) {
                         ChalkField(placeholder: "New player", text: $newName, size: 15)
                         Button("Add") {
@@ -87,12 +92,17 @@ struct IncidentSheet: View {
                         .buttonStyle(ChalkLineButton(compact: true))
                     }
 
+                    if kind == .goal {
+                        SectionLabel(text: "Assist", trailing: "optional")
+                        PlayerChips(players: roster.filter { $0.id != player }, selected: $assist)
+                    }
+
                     Counter(title: "Minute", value: $minute, range: 1...max(t.matchMinutes * 2, 60), unit: "′")
                         .padding(.horizontal, 16)
                         .flagCard()
 
                     Button("Save") {
-                        onSave(Incident(kind: kind, minute: minute, side: side, player: player))
+                        onSave(Incident(kind: kind, minute: minute, side: side, player: player, assist: kind == .goal ? assist : nil))
                         dismiss()
                     }
                     .buttonStyle(FloodlitButton())
@@ -295,5 +305,68 @@ struct ShootoutSheet: View {
         }
         .frame(maxWidth: .infinity)
         .animation(.spring(response: 0.25), value: value.wrappedValue)
+    }
+}
+
+struct StarSheet: View {
+    let t: Tournament
+    let f: Fixture
+    let onSave: (UUID?) -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var pick: UUID?
+
+    var body: some View {
+        ZStack {
+            Turf.night.ignoresSafeArea()
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 18) {
+                    HStack {
+                        Masthead(kicker: "\(t.label(f.home)) \(f.goals(.home))–\(f.goals(.away)) \(t.label(f.away))", title: "Player of the match")
+                        Button("Later") { dismiss() }
+                            .buttonStyle(ChalkLineButton(compact: true))
+                    }
+
+                    ForEach(Side.allCases, id: \.self) { side in
+                        let team = t.team(at: f.seat(side))
+                        HStack(spacing: 8) {
+                            Kit(index: team?.kit ?? 10, size: 16, crest: team?.crest)
+                            SectionLabel(text: team?.name ?? t.label(f.seat(side)))
+                        }
+                        if let players = team?.players, !players.isEmpty {
+                            PlayerChips(players: players, selected: $pick)
+                        } else {
+                            Text("No players listed for this team.")
+                                .font(.copy(13))
+                                .foregroundColor(Turf.haze)
+                        }
+                    }
+
+                    Button(pick == nil ? "Pick a player" : "⭐️  Crown \(pick.flatMap { t.roster(of: $0)?.0.shortName } ?? "")") {
+                        guard pick != nil else {
+                            Buzz.deny()
+                            return
+                        }
+                        onSave(pick)
+                        Buzz.success()
+                        dismiss()
+                    }
+                    .buttonStyle(FloodlitButton(fill: pick == nil ? Turf.stripe : Turf.floodlight, text: pick == nil ? Turf.haze : Turf.ink))
+
+                    if f.star != nil {
+                        Button("Remove award") {
+                            onSave(nil)
+                            Buzz.tick()
+                            dismiss()
+                        }
+                        .buttonStyle(ChalkLineButton(tint: Turf.haze, compact: true))
+                        .frame(maxWidth: .infinity)
+                    }
+                }
+                .padding(22)
+            }
+        }
+        .presentationDetents([.medium, .large])
+        .preferredColorScheme(.dark)
+        .onAppear { pick = f.star }
     }
 }

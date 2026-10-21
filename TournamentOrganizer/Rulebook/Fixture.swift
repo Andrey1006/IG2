@@ -107,13 +107,15 @@ struct Incident: Codable, Identifiable, Hashable {
     var minute: Int
     var side: Side
     var player: UUID?
+    var assist: UUID?
 
-    init(id: UUID = UUID(), kind: Kind, minute: Int, side: Side, player: UUID?) {
+    init(id: UUID = UUID(), kind: Kind, minute: Int, side: Side, player: UUID?, assist: UUID? = nil) {
         self.id = id
         self.kind = kind
         self.minute = minute
         self.side = side
         self.player = player
+        self.assist = assist
     }
 
     var creditedSide: Side { kind == .ownGoal ? side.other : side }
@@ -170,6 +172,7 @@ struct Fixture: Codable, Identifiable, Hashable {
     var clock = Stopwatch()
     var shootout: Shootout?
     var goldenGoal = false
+    var star: UUID?
 
     init(id: UUID = UUID(), stage: Stage, pitch: Int = 0, kickoff: Date = .now, home: Seat, away: Seat) {
         self.id = id
@@ -194,6 +197,7 @@ struct Fixture: Codable, Identifiable, Hashable {
         clock = try c.decodeIfPresent(Stopwatch.self, forKey: .clock) ?? Stopwatch()
         shootout = try c.decodeIfPresent(Shootout.self, forKey: .shootout)
         goldenGoal = try c.decodeIfPresent(Bool.self, forKey: .goldenGoal) ?? false
+        star = try c.decodeIfPresent(UUID.self, forKey: .star)
     }
 
     func goals(_ side: Side) -> Int {
